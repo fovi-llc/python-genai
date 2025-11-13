@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python-genai"
+version = "0.1.0"
+description = "Python wrapper for Chrome's Prompt API using AnyWidget."
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+  {name = "OpenAI Assistant"}
+]
+requires-python = ">=3.9"
+dependencies = [
+  "anywidget>=0.9.12",
+  "traitlets>=5.9.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.urls]
+Homepage = "https://github.com/webmachinelearning/prompt-api"
+Documentation = "https://developer.chrome.com/docs/ai/prompt-api"
