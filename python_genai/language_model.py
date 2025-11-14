@@ -24,178 +24,200 @@ class LanguageModelWidget(anywidget.AnyWidget):
     _esm = """
     function render({ model, el }) {
         // Check if Chrome Prompt API is available
-        if (!window.ai || !window.ai.languageModel) {
+        if (!self.ai || !self.ai.languageModel) {
             model.set('error', {
                 type: 'NotSupportedError',
                 message: 'Chrome Prompt API is not available in this browser'
             });
+            model.save_changes();
             return;
-        }
-
-        // Handle requests from Python
-        model.on('change:request', async () => {
-            const request = model.get('request');
-            if (!request || !request.id) return;
-
-            try {
-                const result = await handleRequest(request);
-                model.set('response', {
-                    id: request.id,
-                    result: result,
-                    error: null
-                });
-            } catch (error) {
-                model.set('response', {
-                    id: request.id,
-                    result: null,
-                    error: {
-                        type: error.name || 'Error',
-                        message: error.message || String(error)
-                    }
-                });
-            }
-        });
-
-        async function handleRequest(request) {
-            const { method, params } = request;
-
-            switch (method) {
-                case 'create':
-                    return await createSession(params);
-                case 'availability':
-                    return await window.ai.languageModel.availability(params.options || {});
-                case 'params':
-                    return await window.ai.languageModel.params();
-                case 'prompt':
-                    return await promptSession(params);
-                case 'promptStreaming':
-                    return await promptStreamingSession(params);
-                case 'append':
-                    return await appendSession(params);
-                case 'measureInputUsage':
-                    return await measureInputUsageSession(params);
-                case 'clone':
-                    return await cloneSession(params);
-                case 'destroy':
-                    return await destroySession(params);
-                default:
-                    throw new Error(`Unknown method: ${method}`);
-            }
         }
 
         // Store sessions by ID
         const sessions = {};
 
-        async function createSession(params) {
-            const session = await window.ai.languageModel.create(params.options || {});
-            const sessionId = params.sessionId;
-            sessions[sessionId] = session;
+        // Handle requests from Python
+        model.on('change:request', () => {
+            const request = model.get('request');
+            if (!request || !request.id) return;
 
-            // Set up quota overflow listener
-            session.addEventListener('quotaoverflow', () => {
-                model.set('quota_overflow_event', {
-                    sessionId: sessionId,
-                    timestamp: Date.now()
+            handleRequest(request)
+                .then(result => {
+                    model.set('response', {
+                        id: request.id,
+                        result: result,
+                        error: null
+                    });
+                    model.save_changes();
+                })
+                .catch(error => {
+                    model.set('response', {
+                        id: request.id,
+                        result: null,
+                        error: {
+                            type: error.name || 'Error',
+                            message: error.message || String(error)
+                        }
+                    });
+                    model.save_changes();
                 });
-            });
+        });
 
-            return {
-                sessionId: sessionId,
-                topK: session.topK,
-                temperature: session.temperature,
-                inputUsage: session.inputUsage,
-                inputQuota: session.inputQuota
-            };
+        function handleRequest(request) {
+            const { method, params } = request;
+
+            switch (method) {
+                case 'create':
+                    return createSession(params);
+                case 'availability':
+                    return self.ai.languageModel.availability(params.options || {});
+                case 'params':
+                    return self.ai.languageModel.params();
+                case 'prompt':
+                    return promptSession(params);
+                case 'promptStreaming':
+                    return promptStreamingSession(params);
+                case 'append':
+                    return appendSession(params);
+                case 'measureInputUsage':
+                    return measureInputUsageSession(params);
+                case 'clone':
+                    return cloneSession(params);
+                case 'destroy':
+                    return destroySession(params);
+                default:
+                    return Promise.reject(new Error(`Unknown method: ${method}`));
+            }
         }
 
-        async function promptSession(params) {
-            const session = sessions[params.sessionId];
-            if (!session) throw new Error('Session not found');
+        function createSession(params) {
+            return self.ai.languageModel.create(params.options || {})
+                .then(session => {
+                    const sessionId = params.sessionId;
+                    sessions[sessionId] = session;
 
-            const result = await session.prompt(params.input, params.options || {});
-            return {
-                result: result,
-                inputUsage: session.inputUsage,
-                inputQuota: session.inputQuota
-            };
+                    // Set up quota overflow listener
+                    session.addEventListener('quotaoverflow', () => {
+                        model.set('quota_overflow_event', {
+                            sessionId: sessionId,
+                            timestamp: Date.now()
+                        });
+                        model.save_changes();
+                    });
+
+                    return {
+                        sessionId: sessionId,
+                        topK: session.topK,
+                        temperature: session.temperature,
+                        inputUsage: session.inputUsage,
+                        inputQuota: session.inputQuota
+                    };
+                });
         }
 
-        async function promptStreamingSession(params) {
+        function promptSession(params) {
             const session = sessions[params.sessionId];
-            if (!session) throw new Error('Session not found');
+            if (!session) return Promise.reject(new Error('Session not found'));
+
+            return session.prompt(params.input, params.options || {})
+                .then(result => {
+                    return {
+                        result: result,
+                        inputUsage: session.inputUsage,
+                        inputQuota: session.inputQuota
+                    };
+                });
+        }
+
+        function promptStreamingSession(params) {
+            const session = sessions[params.sessionId];
+            if (!session) return Promise.reject(new Error('Session not found'));
 
             const stream = session.promptStreaming(params.input, params.options || {});
             const chunks = [];
 
+            return consumeStream(stream, chunks, params.sessionId, params.requestId)
+                .then(() => {
+                    return {
+                        result: chunks.join(''),
+                        inputUsage: session.inputUsage,
+                        inputQuota: session.inputQuota
+                    };
+                });
+        }
+
+        async function consumeStream(stream, chunks, sessionId, requestId) {
             for await (const chunk of stream) {
                 chunks.push(chunk);
                 // Send intermediate chunks back
                 model.set('stream_chunk', {
-                    sessionId: params.sessionId,
-                    requestId: params.requestId,
+                    sessionId: sessionId,
+                    requestId: requestId,
                     chunk: chunk,
                     timestamp: Date.now()
                 });
+                model.save_changes();
             }
-
-            return {
-                result: chunks.join(''),
-                inputUsage: session.inputUsage,
-                inputQuota: session.inputQuota
-            };
         }
 
-        async function appendSession(params) {
+        function appendSession(params) {
             const session = sessions[params.sessionId];
-            if (!session) throw new Error('Session not found');
+            if (!session) return Promise.reject(new Error('Session not found'));
 
-            await session.append(params.input, params.options || {});
-            return {
-                inputUsage: session.inputUsage,
-                inputQuota: session.inputQuota
-            };
-        }
-
-        async function measureInputUsageSession(params) {
-            const session = sessions[params.sessionId];
-            if (!session) throw new Error('Session not found');
-
-            const usage = await session.measureInputUsage(params.input, params.options || {});
-            return { usage: usage };
-        }
-
-        async function cloneSession(params) {
-            const session = sessions[params.sessionId];
-            if (!session) throw new Error('Session not found');
-
-            const cloned = await session.clone(params.options || {});
-            const newSessionId = params.newSessionId;
-            sessions[newSessionId] = cloned;
-
-            // Set up quota overflow listener for cloned session
-            cloned.addEventListener('quotaoverflow', () => {
-                model.set('quota_overflow_event', {
-                    sessionId: newSessionId,
-                    timestamp: Date.now()
+            return session.append(params.input, params.options || {})
+                .then(() => {
+                    return {
+                        inputUsage: session.inputUsage,
+                        inputQuota: session.inputQuota
+                    };
                 });
-            });
-
-            return {
-                sessionId: newSessionId,
-                topK: cloned.topK,
-                temperature: cloned.temperature,
-                inputUsage: cloned.inputUsage,
-                inputQuota: cloned.inputQuota
-            };
         }
 
-        async function destroySession(params) {
+        function measureInputUsageSession(params) {
             const session = sessions[params.sessionId];
-            if (!session) throw new Error('Session not found');
+            if (!session) return Promise.reject(new Error('Session not found'));
+
+            return session.measureInputUsage(params.input, params.options || {})
+                .then(usage => {
+                    return { usage: usage };
+                });
+        }
+
+        function cloneSession(params) {
+            const session = sessions[params.sessionId];
+            if (!session) return Promise.reject(new Error('Session not found'));
+
+            return session.clone(params.options || {})
+                .then(cloned => {
+                    const newSessionId = params.newSessionId;
+                    sessions[newSessionId] = cloned;
+
+                    // Set up quota overflow listener for cloned session
+                    cloned.addEventListener('quotaoverflow', () => {
+                        model.set('quota_overflow_event', {
+                            sessionId: newSessionId,
+                            timestamp: Date.now()
+                        });
+                        model.save_changes();
+                    });
+
+                    return {
+                        sessionId: newSessionId,
+                        topK: cloned.topK,
+                        temperature: cloned.temperature,
+                        inputUsage: cloned.inputUsage,
+                        inputQuota: cloned.inputQuota
+                    };
+                });
+        }
+
+        function destroySession(params) {
+            const session = sessions[params.sessionId];
+            if (!session) return Promise.reject(new Error('Session not found'));
 
             session.destroy();
             delete sessions[params.sessionId];
-            return { success: true };
+            return Promise.resolve({ success: true });
         }
     }
 
