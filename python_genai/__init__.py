@@ -14,12 +14,13 @@ from .models import (
     LanguageModelCloneOptions,
     LanguageModelParams,
 )
-from .language_model import LanguageModel
+from .language_model import LanguageModel, LanguageModelWidget
 
 __version__ = "0.1.0"
 
 __all__ = [
     "LanguageModel",
+    "LanguageModelWidget",
     "LanguageModelParams",
     "Availability",
     "LanguageModelMessageRole",

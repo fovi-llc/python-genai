@@ -23,8 +23,10 @@ class LanguageModelWidget(anywidget.AnyWidget):
 
     _esm = """
     function render({ model, el }) {
+        let statusTextArea = document.createElement("textarea", {readonly: true});
+        statusTextArea.value = "Initializing...";
         // Check if Chrome Prompt API is available
-        if (!self.ai || !self.ai.languageModel) {
+        if (!('LanguageModel' in self)) {
             model.set('error', {
                 type: 'NotSupportedError',
                 message: 'Chrome Prompt API is not available in this browser'
@@ -32,6 +34,8 @@ class LanguageModelWidget(anywidget.AnyWidget):
             model.save_changes();
             return;
         }
+        statusTextArea.value = "Chrome Prompt API is available.";
+        el.appendChild(statusTextArea);
 
         // Store sessions by ID
         const sessions = {};
@@ -43,6 +47,7 @@ class LanguageModelWidget(anywidget.AnyWidget):
 
             handleRequest(request)
                 .then(result => {
+                    console.log('Result: ', result);
                     model.set('response', {
                         id: request.id,
                         result: result,
@@ -51,6 +56,7 @@ class LanguageModelWidget(anywidget.AnyWidget):
                     model.save_changes();
                 })
                 .catch(error => {
+                    console.error('Error: ', error);
                     model.set('response', {
                         id: request.id,
                         result: null,
@@ -68,11 +74,13 @@ class LanguageModelWidget(anywidget.AnyWidget):
 
             switch (method) {
                 case 'create':
+                    console.log('Creating session with params:', params);
                     return createSession(params);
                 case 'availability':
-                    return self.ai.languageModel.availability(params.options || {});
+                    console.log('Checking availability with params:', params);
+                    return self.LanguageModel.availability(params.options || {});
                 case 'params':
-                    return self.ai.languageModel.params();
+                    return self.LanguageModel.params();
                 case 'prompt':
                     return promptSession(params);
                 case 'promptStreaming':
@@ -91,7 +99,7 @@ class LanguageModelWidget(anywidget.AnyWidget):
         }
 
         function createSession(params) {
-            return self.ai.languageModel.create(params.options || {})
+            return self.LanguageModel.create(params.options || {})
                 .then(session => {
                     const sessionId = params.sessionId;
                     sessions[sessionId] = session;
@@ -235,12 +243,14 @@ class LanguageModelWidget(anywidget.AnyWidget):
         super().__init__(**kwargs)
         self._pending_requests: Dict[str, asyncio.Future] = {}
         self._stream_chunks: Dict[str, List[str]] = {}
-        self.observe(self._handle_response, names=["response"])
-        self.observe(self._handle_error, names=["error"])
-        self.observe(self._handle_stream_chunk, names=["stream_chunk"])
+        # self.observe(self._handle_response, names=["response"])
+        # self.observe(self._handle_error, names=["error"])
+        # self.observe(self._handle_stream_chunk, names=["stream_chunk"])
 
+    @traitlets.observe("response")
     def _handle_response(self, change):
         """Handle response from JavaScript."""
+        print('Handling response: ', change)
         response = change["new"]
         if not response or "id" not in response:
             return
@@ -257,14 +267,19 @@ class LanguageModelWidget(anywidget.AnyWidget):
                 )
             else:
                 future.set_result(response.get("result"))
+        else:
+            print(f"Warning: Received response for unknown request ID: {request_id}")
 
+    @traitlets.observe("error")
     def _handle_error(self, change):
         """Handle error from JavaScript."""
+        print('Handling error: ', change)
         error = change["new"]
         if error and error.get("message"):
             # Global error not tied to a specific request
             print(f"Error: {error.get('type', 'Error')}: {error.get('message')}")
 
+    @traitlets.observe("stream_chunk")
     def _handle_stream_chunk(self, change):
         """Handle streaming chunk from JavaScript."""
         chunk_data = change["new"]
@@ -276,15 +291,17 @@ class LanguageModelWidget(anywidget.AnyWidget):
             self._stream_chunks[request_id] = []
         self._stream_chunks[request_id].append(chunk_data["chunk"])
 
-    async def send_request(self, method: str, params: Optional[Dict[str, Any]] = None) -> Any:
+    def send_request(self, method: str, params: Optional[Dict[str, Any]] = None) -> Any:
         """Send a request to JavaScript and await response."""
         request_id = str(uuid.uuid4())
+        print('Sending request ID: ', request_id)
         future = asyncio.Future()
         self._pending_requests[request_id] = future
 
         self.request = {"id": request_id, "method": method, "params": params or {}}
+        print('Sent request: ', self.request)
 
-        return await future
+        return future
 
 
 class LanguageModel:
@@ -318,13 +335,10 @@ class LanguageModel:
 
         return cls(widget, session_id, result)
 
-    @classmethod
     async def availability(
-        cls, options: Optional[Union[LanguageModelCreateOptions, Dict[str, Any]]] = None
+        self, options: Optional[Union[LanguageModelCreateOptions, Dict[str, Any]]] = None
     ) -> Availability:
         """Check availability of the language model with given options."""
-        widget = LanguageModelWidget()
-
         if isinstance(options, LanguageModelCreateOptions):
             options_dict = options.to_dict()
         elif options is None:
@@ -332,14 +346,12 @@ class LanguageModel:
         else:
             options_dict = options
 
-        result = await widget.send_request("availability", {"options": options_dict})
+        result = await self._widget.send_request("availability", {"options": options_dict})
         return Availability(result)
 
-    @classmethod
-    async def params(cls) -> Optional[LanguageModelParams]:
+    async def params(self) -> Optional[LanguageModelParams]:
         """Get language model parameters."""
-        widget = LanguageModelWidget()
-        result = await widget.send_request("params")
+        result = await self._widget.send_request("params")
 
         if result is None:
             return None
