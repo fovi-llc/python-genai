@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2025-11-13
 
 ### Added
-- Initial release of python-genai
+- Initial release of python-ai
 - Full implementation of Chrome Prompt API wrapper
 - AnyWidget integration for Jupyter notebooks
 - Traitlets-based bidirectional communication
@@ -46,4 +46,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CodeQL analysis passed
 - Cross-origin restrictions enforced
 
-[0.1.0]: https://github.com/fovi-llc/python-genai/releases/tag/v0.1.0
+[0.1.0]: https://github.com/fovi-llc/python-ai/releases/tag/v0.1.0

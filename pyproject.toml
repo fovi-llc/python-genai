@@ -3,14 +3,14 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "python-genai"
+name = "python-ai"
 version = "0.1.0"
 description = "Python wrapper for Chrome's built-in AI Prompt API"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {file = "LICENSE"}
 authors = [
-    {name = "fovi-llc"},
+    {name = "jim@fovi.com"},
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -25,6 +25,13 @@ classifiers = [
 dependencies = [
     "anywidget>=0.9.0",
     "traitlets>=5.0.0",
+    "ipywidgets",
+    "jupyterlab",
+    "jupyterlite",
+    "jupyterlite-core",
+    "jupyterlite-pyodide-kernel",
+    "jupyter-server",
+    "notebook",
 ]
 
 [project.optional-dependencies]
@@ -36,12 +43,12 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/fovi-llc/python-genai"
-Repository = "https://github.com/fovi-llc/python-genai"
-Issues = "https://github.com/fovi-llc/python-genai/issues"
+Homepage = "https://github.com/fovi-llc/python-ai"
+Repository = "https://github.com/fovi-llc/python-ai"
+Issues = "https://github.com/fovi-llc/python-ai/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["python_genai"]
+packages = ["python_ai"]
 
 [tool.black]
 line-length = 100

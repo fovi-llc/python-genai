@@ -1,14 +1,14 @@
 # Architecture
 
-This document describes the architecture of the python-genai package.
+This document describes the architecture of the python-ai package.
 
 ## Overview
 
-python-genai is a Python wrapper for Chrome's built-in AI Prompt API that enables seamless access to browser-provided language models from Jupyter notebooks. The implementation uses minimal code and directly maps to the Web IDL specifications.
+python-ai is a Python wrapper for Chrome's built-in AI Prompt API that enables seamless access to browser-provided language models from Jupyter notebooks. The implementation uses minimal code and directly maps to the Web IDL specifications.
 
 ## Components
 
-### 1. Data Models (`python_genai/models.py`)
+### 1. Data Models (`python_ai/models.py`)
 
 Pure Python dataclasses that mirror the IDL specification:
 
@@ -22,7 +22,7 @@ Each model includes:
 - `to_dict()` methods for serialization to JavaScript
 - `from_dict()` methods for deserialization from JavaScript (where applicable)
 
-### 2. Language Model (`python_genai/language_model.py`)
+### 2. Language Model (`python_ai/language_model.py`)
 
 #### LanguageModelWidget (AnyWidget)
 

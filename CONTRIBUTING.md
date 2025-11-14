@@ -1,6 +1,6 @@
-# Contributing to python-genai
+# Contributing to python-ai
 
-Thank you for your interest in contributing to python-genai! This document provides guidelines for contributing to the project.
+Thank you for your interest in contributing to python-ai! This document provides guidelines for contributing to the project.
 
 ## Code of Conduct
 
@@ -10,8 +10,8 @@ Please be respectful and constructive in all interactions with the community.
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/fovi-llc/python-genai.git
-   cd python-genai
+   git clone https://github.com/fovi-llc/python-ai.git
+   cd python-ai
    ```
 
 2. **Install in development mode:**
@@ -49,8 +49,8 @@ We use:
 
 Format your code:
 ```bash
-black python_genai tests examples
-ruff check python_genai tests examples --fix
+black python_ai tests examples
+ruff check python_ai tests examples --fix
 ```
 
 ### 4. Run Tests
@@ -132,8 +132,8 @@ Key principles:
 ## Project Structure
 
 ```
-python-genai/
-├── python_genai/          # Main package
+python-ai/
+├── python_ai/             # Main package
 │   ├── __init__.py        # Package exports
 │   ├── models.py          # Data models
 │   └── language_model.py  # Main implementation
@@ -161,7 +161,7 @@ pytest tests/ -v
 pytest tests/test_models.py -v
 
 # With coverage
-pytest tests/ --cov=python_genai
+pytest tests/ --cov=python_ai
 ```
 
 ## Documentation

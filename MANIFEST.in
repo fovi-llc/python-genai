@@ -1,5 +1,5 @@
 include README.md
 include LICENSE
 include pyproject.toml
-recursive-include python_genai *.py
+recursive-include python_ai *.py
 recursive-include examples *.py *.ipynb

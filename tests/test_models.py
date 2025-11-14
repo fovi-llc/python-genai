@@ -1,7 +1,7 @@
 """Tests for data models."""
 
 import pytest
-from python_genai.models import (
+from python_ai.models import (
     Availability,
     LanguageModelMessage,
     LanguageModelMessageContent,

@@ -1,4 +1,4 @@
-# python-genai
+# python-ai
 
 Python wrapper for Chrome's built-in AI Prompt API, enabling direct access to browser-provided language models from Jupyter notebooks.
 
@@ -17,7 +17,7 @@ Python wrapper for Chrome's built-in AI Prompt API, enabling direct access to br
 ## Installation
 
 ```bash
-pip install python-genai
+pip install python-ai
 ```
 
 ## Requirements
@@ -29,7 +29,7 @@ pip install python-genai
 ## Quick Start
 
 ```python
-from python_genai import LanguageModel
+from python_ai import LanguageModel
 
 # Create a language model session
 session = await LanguageModel.create()
@@ -48,7 +48,7 @@ async for chunk in session.prompt_streaming("Write me a long story."):
 ### System Prompts
 
 ```python
-from python_genai import LanguageModel, LanguageModelMessage, LanguageModelMessageRole
+from python_ai import LanguageModel, LanguageModelMessage, LanguageModelMessageRole
 
 session = await LanguageModel.create({
     "initialPrompts": [
@@ -66,7 +66,7 @@ print(response)
 ### Checking Availability
 
 ```python
-from python_genai import LanguageModel, Availability
+from python_ai import LanguageModel, Availability
 
 # Check if the API is available
 availability = await LanguageModel.availability()
@@ -222,6 +222,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Links
 
-- [GitHub Repository](https://github.com/fovi-llc/python-genai)
+- [GitHub Repository](https://github.com/fovi-llc/python-ai)
 - [Chrome Prompt API Documentation](https://developer.chrome.com/docs/ai/prompt-api)
 - [Web Machine Learning Community Group](https://github.com/webmachinelearning/prompt-api)

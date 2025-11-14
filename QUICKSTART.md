@@ -1,6 +1,6 @@
 # Quick Start Guide
 
-Get started with python-genai in 5 minutes!
+Get started with python-ai in 5 minutes!
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@ Get started with python-genai in 5 minutes!
 ## Installation
 
 ```bash
-pip install python-genai
+pip install python-ai
 ```
 
 ## Your First Prompt
@@ -23,7 +23,7 @@ pip install python-genai
 Open a Jupyter notebook in Chrome and run:
 
 ```python
-from python_genai import LanguageModel
+from python_ai import LanguageModel
 
 # Create a session
 session = await LanguageModel.create()
@@ -42,7 +42,7 @@ That's it! You're now using Chrome's built-in AI.
 Always check if the API is available:
 
 ```python
-from python_genai import LanguageModel, Availability
+from python_ai import LanguageModel, Availability
 
 availability = await LanguageModel.availability()
 
@@ -192,8 +192,8 @@ Make sure you're using:
 
 ## Getting Help
 
-- **Issues**: [GitHub Issues](https://github.com/fovi-llc/python-genai/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/fovi-llc/python-genai/discussions)
+- **Issues**: [GitHub Issues](https://github.com/fovi-llc/python-ai/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/fovi-llc/python-ai/discussions)
 - **Chrome API**: [Chrome AI Documentation](https://developer.chrome.com/docs/ai/prompt-api)
 
 Happy coding! 🚀

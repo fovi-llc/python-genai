@@ -1,12 +1,12 @@
 """
-Basic usage examples for python-genai.
+Basic usage examples for python-ai.
 
 This file demonstrates the core functionality of the Python wrapper
 for Chrome's Prompt API.
 """
 
 import asyncio
-from python_genai import LanguageModel, Availability
+from python_ai import LanguageModel, Availability
 
 
 async def check_availability():
