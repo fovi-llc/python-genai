@@ -22,7 +22,7 @@ class LanguageModelWidget(anywidget.AnyWidget):
     """AnyWidget bridge to Chrome's Prompt API."""
 
     _esm = """
-    export async function render({ model, el }) {
+    function render({ model, el }) {
         // Check if Chrome Prompt API is available
         if (!window.ai || !window.ai.languageModel) {
             model.set('error', {
@@ -198,6 +198,8 @@ class LanguageModelWidget(anywidget.AnyWidget):
             return { success: true };
         }
     }
+
+    export default { render };
     """
 
     # Traitlets for communication
@@ -227,7 +229,9 @@ class LanguageModelWidget(anywidget.AnyWidget):
             if response.get("error"):
                 error = response["error"]
                 future.set_exception(
-                    Exception(f"{error.get('type', 'Error')}: {error.get('message', 'Unknown error')}")
+                    Exception(
+                        f"{error.get('type', 'Error')}: {error.get('message', 'Unknown error')}"
+                    )
                 )
             else:
                 future.set_result(response.get("result"))
