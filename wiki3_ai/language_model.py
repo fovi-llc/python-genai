@@ -74,10 +74,10 @@ class LanguageModelWidget(anywidget.AnyWidget):
 
             switch (method) {
                 case 'create':
-                    console.log('Creating session with params:', params);
+                    // console.log('Creating session with params:', params);
                     return createSession(params);
                 case 'availability':
-                    console.log('Checking availability with params:', params);
+                    // console.log('Checking availability with params:', params);
                     return self.LanguageModel.availability(params.options || {});
                 case 'params':
                     //FIXME: This fails serialization for traitlets
@@ -251,7 +251,7 @@ class LanguageModelWidget(anywidget.AnyWidget):
     @traitlets.observe("response")
     def _handle_response(self, change):
         """Handle response from JavaScript."""
-        print("Handling response: ", change)
+        # print("Handling response: ", change)
         response = change["new"]
         if not response or "id" not in response:
             return
@@ -274,7 +274,7 @@ class LanguageModelWidget(anywidget.AnyWidget):
     @traitlets.observe("error")
     def _handle_error(self, change):
         """Handle error from JavaScript."""
-        print("Handling error: ", change)
+        # print("Handling error: ", change)
         error = change["new"]
         if error and error.get("message"):
             # Global error not tied to a specific request
@@ -295,7 +295,7 @@ class LanguageModelWidget(anywidget.AnyWidget):
     async def send_request(self, method: str, params: Optional[Dict[str, Any]] = None) -> Any:
         """Send a request to JavaScript and await response."""
         request_id = str(uuid.uuid4())
-        print("Sending request ID: ", request_id)
+        # print("Sending request ID: ", request_id)
         future = asyncio.Future()
         self._pending_requests[request_id] = future
 
