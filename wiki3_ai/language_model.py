@@ -69,6 +69,21 @@ class LanguageModelWidget(anywidget.AnyWidget):
                 });
         });
 
+        async function getParamsDict() {
+            const params = (await LanguageModel.params()) ?? {
+                defaultTopK: 3,
+                maxTopK: 128,
+                defaultTemperature: 1,
+                maxTemperature: 2,
+            };
+            return {
+                defaultTopK: params.defaultTopK,
+                maxTopK: params.maxTopK,
+                defaultTemperature: params.defaultTemperature,
+                maxTemperature: params.maxTemperature,
+            };
+        }
+
         function handleRequest(request) {
             const { method, params } = request;
 
@@ -80,8 +95,7 @@ class LanguageModelWidget(anywidget.AnyWidget):
                     // console.log('Checking availability with params:', params);
                     return self.LanguageModel.availability(params.options || {});
                 case 'params':
-                    //FIXME: This fails serialization for traitlets
-                    return self.LanguageModel.params();
+                    return getParamsDict();
                 case 'prompt':
                     return promptSession(params);
                 case 'promptStreaming':
@@ -292,6 +306,15 @@ class LanguageModelWidget(anywidget.AnyWidget):
             self._stream_chunks[request_id] = []
         self._stream_chunks[request_id].append(chunk_data["chunk"])
 
+    def wait_for_change(self, value):
+        future = asyncio.Future()
+        def getvalue(change):
+            # make the new value available
+            future.set_result(change.new)
+            self.widget.unobserve(getvalue, value)
+        self.widget.observe(getvalue, value)
+        return future
+
     async def send_request(self, method: str, params: Optional[Dict[str, Any]] = None) -> Any:
         """Send a request to JavaScript and await response."""
         request_id = str(uuid.uuid4())
@@ -300,12 +323,13 @@ class LanguageModelWidget(anywidget.AnyWidget):
         self._pending_requests[request_id] = future
 
         self.request = {"id": request_id, "method": method, "params": params or {}}
-        print("Sent request: ", self.request)
+        # print("Sent request: ", self.request)
 
         # Yield control to allow the event loop to process traitlet updates
-        # This is necessary for the JavaScript response to be received and processed
-        while not future.done():
-            await asyncio.sleep(0)
+        # This will avoid blocking the event loop if `%gui asyncio` magic isn't used.
+        # TODO: Some way to warn and use this workaround only if needed?
+        # while not future.done():
+        #     await asyncio.sleep(0)
 
         return await future
 
@@ -336,7 +360,7 @@ class LanguageModel:
 
         params = {"sessionId": session_id, "options": options_dict}
         result = await self.widget.send_request("create", params)
-        print("Created session result: ", result)
+        # print("Created session result: ", result)
 
         self._session_id = session_id
         self._top_k = result.get("topK")

@@ -144,7 +144,7 @@ All dependencies are mature, widely-used libraries in the Jupyter ecosystem.
 
 - Chrome browser with Prompt API enabled
 - Running in a Jupyter environment (JupyterLab, Jupyter Notebook, Google Colab, etc.)
-- Chrome must support `window.ai.languageModel` API
+- Chrome must support `LanguageModel` API
 
 ## Testing
 
