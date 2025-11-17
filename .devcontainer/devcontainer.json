@@ -1,19 +1,23 @@
 {
   "name": "Python GenAI Development",
   "image": "quay.io/jupyter/minimal-notebook:latest",
-  
   "customizations": {
     "vscode": {
       "extensions": [
         "ms-python.python",
-        "ms-python.vscode-pylance",
-      ],
+        "ms-python.vscode-pylance"
+      ]
     }
   },
-  
   "postCreateCommand": "pip install -e '.[dev]'",
-  
-  "forwardPorts": [8888],
-  
+  "forwardPorts": [
+    8888
+  ],
+  "portsAttributes": {
+    "3000": {
+      "label": "python-ai",
+      "requireLocalPort": true
+    }
+  },
   "remoteUser": "jovyan"
 }

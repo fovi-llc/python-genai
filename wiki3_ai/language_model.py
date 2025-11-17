@@ -311,8 +311,8 @@ class LanguageModelWidget(anywidget.AnyWidget):
         def getvalue(change):
             # make the new value available
             future.set_result(change.new)
-            self.widget.unobserve(getvalue, value)
-        self.widget.observe(getvalue, value)
+            self.unobserve(getvalue, value)
+        self.observe(getvalue, value)
         return future
 
     async def send_request(self, method: str, params: Optional[Dict[str, Any]] = None) -> Any:
@@ -337,18 +337,32 @@ class LanguageModelWidget(anywidget.AnyWidget):
 class LanguageModel:
     """Python interface to Chrome's Prompt API Language Model."""
 
-    def __init__(self, widget: LanguageModelWidget | None = None):
-        self.widget = widget or LanguageModelWidget()
-        self._session_id = None
-        self._top_k = None
-        self._temperature = None
-        self._input_usage = 0.0
-        self._input_quota = float("inf")
+    def __init__(self,
+                 widget: LanguageModelWidget, 
+                 session_id: str = str(uuid.uuid4()), 
+                 top_k: Optional[int] = None, 
+                 temperature: Optional[float] = None, 
+                 input_usage: float = 0.0, 
+                 input_quota: float = float("inf")):
+        self._widget = widget
+        self._session_id = session_id
+        self._top_k = top_k
+        self._temperature = temperature
+        self._input_usage = input_usage
+        self._input_quota = input_quota
 
+    @classmethod
     async def create(
-        self, options: Optional[Union[LanguageModelCreateOptions, Dict[str, Any]]] = None
-    ) -> str | None:
+        cls, widget: Optional[LanguageModelWidget] = None,
+        options: Optional[Union[LanguageModelCreateOptions, Dict[str, Any]]] = None
+    ) -> "LanguageModel":
         """Create a new language model session."""
+        # Don't use default in args because it would be constructed at definition time
+        if widget is None:
+            widget = LanguageModelWidget()
+        # At this point widget is guaranteed to be non-None
+        assert widget is not None
+        
         session_id = str(uuid.uuid4())
 
         if isinstance(options, LanguageModelCreateOptions):
@@ -359,16 +373,15 @@ class LanguageModel:
             options_dict = options
 
         params = {"sessionId": session_id, "options": options_dict}
-        result = await self.widget.send_request("create", params)
+        result = await widget.send_request("create", params)
         # print("Created session result: ", result)
 
-        self._session_id = session_id
-        self._top_k = result.get("topK")
-        self._temperature = result.get("temperature")
-        self._input_usage = result.get("inputUsage", 0.0)
-        self._input_quota = result.get("inputQuota", float("inf"))
-
-        return self.session_id
+        return cls(widget=widget,
+                 session_id=session_id,
+                 top_k = result.get("topK"), 
+                 temperature=result.get("temperature"),
+                  input_usage=result.get("inputUsage", 0.0), 
+                  input_quota=result.get("inputQuota", float("inf")))
 
     async def availability(
         self, options: Optional[Union[LanguageModelCreateOptions, Dict[str, Any]]] = None
@@ -381,12 +394,12 @@ class LanguageModel:
         else:
             options_dict = options
 
-        result = await self.widget.send_request("availability", {"options": options_dict})
+        result = await self._widget.send_request("availability", {"options": options_dict})
         return Availability(result)
 
     async def params(self) -> Optional[LanguageModelParams]:
         """Get language model parameters."""
-        result = await self.widget.send_request("params")
+        result = await self._widget.send_request("params")
 
         if result is None:
             return None
@@ -409,7 +422,7 @@ class LanguageModel:
             options_dict = options
 
         params = {"sessionId": self.session_id, "input": input_data, "options": options_dict}
-        result = await self.widget.send_request("prompt", params)
+        result = await self._widget.send_request("prompt", params)
 
         self._input_usage = result.get("inputUsage", self._input_usage)
         self._input_quota = result.get("inputQuota", self._input_quota)
@@ -432,7 +445,7 @@ class LanguageModel:
             options_dict = options
 
         request_id = str(uuid.uuid4())
-        self.widget._stream_chunks[request_id] = []
+        self._widget._stream_chunks[request_id] = []
 
         params = {
             "sessionId": self.session_id,
@@ -442,29 +455,29 @@ class LanguageModel:
         }
 
         # Start the request
-        asyncio.create_task(self.widget.send_request("promptStreaming", params))
+        asyncio.create_task(self._widget.send_request("promptStreaming", params))
 
         # Yield chunks as they arrive
         chunk_index = 0
         while True:
-            chunks = self.widget._stream_chunks.get(request_id, [])
+            chunks = self._widget._stream_chunks.get(request_id, [])
             if chunk_index < len(chunks):
                 yield chunks[chunk_index]
                 chunk_index += 1
             else:
                 # Check if the request is complete
                 await asyncio.sleep(0.1)
-                if request_id not in self.widget._pending_requests:
+                if request_id not in self._widget._pending_requests:
                     # Request completed, yield remaining chunks
-                    chunks = self.widget._stream_chunks.get(request_id, [])
+                    chunks = self._widget._stream_chunks.get(request_id, [])
                     while chunk_index < len(chunks):
                         yield chunks[chunk_index]
                         chunk_index += 1
                     break
 
         # Clean up
-        if request_id in self.widget._stream_chunks:
-            del self.widget._stream_chunks[request_id]
+        if request_id in self._widget._stream_chunks:
+            del self._widget._stream_chunks[request_id]
 
     async def append(
         self,
@@ -482,7 +495,7 @@ class LanguageModel:
             options_dict = options
 
         params = {"sessionId": self.session_id, "input": input_data, "options": options_dict}
-        result = await self.widget.send_request("append", params)
+        result = await self._widget.send_request("append", params)
 
         self._input_usage = result.get("inputUsage", self._input_usage)
         self._input_quota = result.get("inputQuota", self._input_quota)
@@ -503,7 +516,7 @@ class LanguageModel:
             options_dict = options
 
         params = {"sessionId": self.session_id, "input": input_data, "options": options_dict}
-        result = await self.widget.send_request("measureInputUsage", params)
+        result = await self._widget.send_request("measureInputUsage", params)
 
         return result["usage"]
 
@@ -550,19 +563,19 @@ class LanguageModel:
             "newSessionId": new_session_id,
             "options": options_dict,
         }
-        result = await self.widget.send_request("clone", params)
-        newLM = LanguageModel(self.widget)
-        newLM._session_id = new_session_id
-        newLM._top_k = result.get("topK")
-        newLM._temperature = result.get("temperature")
-        newLM._input_usage = result.get("inputUsage", 0.0)
-        newLM._input_quota = result.get("inputQuota", float("inf"))
-        return newLM
+        result = await self._widget.send_request("clone", params)
+        return LanguageModel(
+            self._widget,
+            session_id = new_session_id,
+            top_k = result.get("topK"),
+            temperature = result.get("temperature"),
+            input_usage = result.get("inputUsage"),
+            input_quota = result.get("inputQuota"))
 
     async def destroy(self) -> None:
         """Destroy the session and free resources."""
         params = {"sessionId": self.session_id}
-        await self.widget.send_request("destroy", params)
+        await self._widget.send_request("destroy", params)
 
     def _prepare_input(
         self, input: Union[str, List[LanguageModelMessage], List[Dict[str, Any]]]
