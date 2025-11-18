@@ -1,6 +1,7 @@
 """Language Model class implementation using AnyWidget for Jupyter integration."""
 
 import asyncio
+from logging import log
 import uuid
 from typing import Any, AsyncIterator, Dict, List, Optional, Union
 from functools import cache
@@ -114,7 +115,6 @@ class LanguageModelWidget(anywidget.AnyWidget):
                     session.addEventListener('quotaoverflow', () => {
                         model.set('quota_overflow_event', {
                             sessionId: sessionId,
-                            timestamp: Date.now()
                         });
                         model.save_changes();
                     });
@@ -162,13 +162,13 @@ class LanguageModelWidget(anywidget.AnyWidget):
 
         async function consumeStream(stream, chunks, sessionId, requestId) {
             for await (const chunk of stream) {
+                console.log('chunk: ', chunk);
                 chunks.push(chunk);
                 // Send intermediate chunks back
                 model.set('stream_chunk', {
                     sessionId: sessionId,
                     requestId: requestId,
                     chunk: chunk,
-                    timestamp: Date.now()
                 });
                 model.save_changes();
             }
@@ -209,8 +209,7 @@ class LanguageModelWidget(anywidget.AnyWidget):
                     // Set up quota overflow listener for cloned session
                     cloned.addEventListener('quotaoverflow', () => {
                         model.set('quota_overflow_event', {
-                            sessionId: newSessionId,
-                            timestamp: Date.now()
+                            sessionId: newSessionId
                         });
                         model.save_changes();
                     });
@@ -288,8 +287,10 @@ class LanguageModelWidget(anywidget.AnyWidget):
     @traitlets.observe("stream_chunk")
     def _handle_stream_chunk(self, change):
         """Handle streaming chunk from JavaScript."""
+        print("change: ", change)
         chunk_data = change["new"]
         if not chunk_data or "requestId" not in chunk_data:
+            log.warning("Invalid chunk data received: ", chunk_data)
             return
 
         request_id = chunk_data["requestId"]
